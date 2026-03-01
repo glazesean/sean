@@ -7,7 +7,8 @@ Two people maintain this repo. Sean (the user) and a remote collaborator who pus
 | Folder | Tracked | Who writes | Purpose |
 |--------|---------|------------|---------|
 | `data/` | **gitignored** | Machine / Sean's agent | API downloads, lab results, emails, PDFs, raw health records. Ephemeral or private. |
-| `journal/` | **git-tracked** | Sean | His authored input: questionnaire answers, self-reports, transcripts, phenotype notes, symptom logs, interview summaries. Keep flat — files at top level, subdirs only if a clear category emerges. |
+| `journal/` | **git-tracked** | Sean | His authored input: questionnaire answers, self-reports, transcripts, phenotype notes, symptom logs, interview summaries. Keep flat. |
+| `journal/private/` | **gitignored, own local repo** | Sean | Personal entries Sean doesn't share. Has its own `.git` for backup/history. Never leaves his machine. |
 | `derived/` | **git-tracked** | Scripts / Claude | Interpretations, analyses, summaries built from data + journal. Can be rederived — safe to regenerate. |
 | `scripts/` | **git-tracked** | Remote collaborator | Pipeline code, analysis scripts. |
 | `docs/` | **git-tracked** | Remote collaborator | Templates, questionnaires (blank), example memos. |
@@ -39,7 +40,9 @@ Conversation context disappears after the session. His health information belong
 
 - If a relevant journal file exists (e.g., `symptoms.md`, `medications.md`), append to it with a date.
 - If no file fits, create one with a clear name.
+- **If the information is sensitive**, ask Sean: "journal/ or journal/private?" Default to `journal/` (shared) unless he says otherwise or the topic is clearly private.
 - Quote Sean's words when possible. Don't paraphrase health self-reports into clinical language — preserve how he said it.
+- After writing to `journal/private/`, commit it there: `cd journal/private && git add -A && git commit -m "..."`. This is a separate local repo — it needs its own commits.
 
 ## derived/ Rules
 
