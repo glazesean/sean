@@ -25,10 +25,21 @@ Agent analyzes   → derived/  (tracked, rederivable, shared)
 
 This is Sean's voice. Treat it as source-of-truth authored input.
 
-- **Never overwrite** journal files from remote. The auto-pull hook protects this — on merge conflicts, Sean's local version wins.
+- **Append-only.** Create new files, append to existing ones. Never delete content, never overwrite, never truncate. Even if something looks outdated or contradictory — it's his record.
 - **Never regenerate** journal content. If a questionnaire answer seems wrong, ask Sean — don't "fix" it.
-- **Append, don't replace.** If Sean updates a self-report, keep the prior version (or let git history handle it). Don't silently drop previous entries.
+- **Never delete** journal files. Not even to "clean up." Git history is not a backup plan — the files stay.
+- **Protected from remote.** The auto-pull hook ensures Sean's local version wins on merge conflicts.
 - Keep the folder shallow. A file per questionnaire, a file per session/topic. No deep nesting.
+
+## Auto-Capture
+
+When Sean mentions personal health information during conversation — symptoms, conditions, medications, family history, phenotype observations, lifestyle patterns, anything about his body or mind — **save it to `journal/`** before the session ends. Don't wait to be asked.
+
+Conversation context disappears after the session. His health information belongs in files, not buried in a chat transcript.
+
+- If a relevant journal file exists (e.g., `symptoms.md`, `medications.md`), append to it with a date.
+- If no file fits, create one with a clear name.
+- Quote Sean's words when possible. Don't paraphrase health self-reports into clinical language — preserve how he said it.
 
 ## derived/ Rules
 
