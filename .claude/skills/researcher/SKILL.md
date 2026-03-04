@@ -17,6 +17,7 @@ Research with the rigor of an investigative journalist, not a search engine. Eve
 
 **Project-specific tool routing and gotchas are in `.claude/rules/research-depth.md`** (if it exists). Check it before starting.
 
+<tool_reference>
 ## Available Research Tools
 
 Use whichever of these are available in the current project's `.mcp.json`:
@@ -26,12 +27,13 @@ Use whichever of these are available in the current project's `.mcp.json`:
 | `mcp__selve__search` | Personal knowledge search | Prior work, conversations, notes — **always check first** if available |
 | `mcp__duckdb__execute_query` | Query project DuckDB views | Local data — check before going external |
 | `mcp__intelligence__*` | Entity resolution, dossiers, screening | Investigation targets (if configured) |
-| `mcp__research__search_papers` | Semantic Scholar search | Finding papers. **No date filtering** — use Exa for recency |
+| `mcp__research__search_papers` | Semantic Scholar search (220M+ papers) | Canonical papers, citation counts, structured metadata. **No date filtering** — use Exa for recency |
 | `mcp__research__save_paper` | Save paper to local corpus | After finding useful paper |
 | `mcp__research__fetch_paper` | Download PDF + extract text | **Before citing any paper** |
 | `mcp__research__read_paper` | Get full extracted text | Reading a fetched paper |
 | `mcp__research__ask_papers` | Query across papers (Gemini 1M) | Synthesizing multiple papers |
 | `mcp__research__list_corpus` | List saved papers | Check before searching externally |
+| `mcp__research__verify_claim` | Verify factual claim via Exa /answer | High-stakes claims: numbers, stats, entity properties. Single-call, cached 7d |
 | `mcp__research__export_for_selve` | Export for knowledge embedding | End of session, persist findings (if configured) |
 | `mcp__paper-search__search_arxiv` | arXiv search | Preprints — flag as `[PREPRINT]` |
 | `mcp__paper-search__search_pubmed` | PubMed search | Clinical/medical literature |
@@ -39,6 +41,16 @@ Use whichever of these are available in the current project's `.mcp.json`:
 | `mcp__exa__web_search_exa` | Semantic web search | Non-obvious connections, expert blogs, recent work |
 | `mcp__exa__company_research_exa` | Company intelligence | Business/financial research |
 | `mcp__exa__get_code_context_exa` | Code/docs search | Technical implementation |
+| `mcp__brave-search__brave_web_search` | Independent index search | Triangulation with Exa (different index). Fallback when Exa rate-limits. |
+| `mcp__brave-search__brave_news_search` | Dedicated news search | Time-sensitive events (default 24h). Better than Exa category filter for breaking news. |
+| `mcp__perplexity__perplexity_ask` | Grounded factual answer | Quick "What is X?" — one call, cited. Saves search→fetch→synthesize. |
+| `mcp__perplexity__perplexity_research` | Deep multi-source report | Comprehensive topic surveys. Alternative to Exa deep_researcher. Slow (~30s+). |
+| `mcp__perplexity__perplexity_reason` | Chain-of-thought + web | "Why did X happen?" — analytical questions needing reasoning + evidence. |
+| `mcp__perplexity__perplexity_search` | Raw web results | Third search source. Use when you want to control synthesis yourself. |
+| `mcp__firecrawl__firecrawl_scrape` | JS-heavy page scraper | Financial dashboards, dynamic sites that WebFetch/Exa crawling can't handle. |
+| `mcp__firecrawl__firecrawl_extract` | Structured data extraction | JSON Schema extraction from web pages. Company filings, earnings data. |
+| `mcp__firecrawl__firecrawl_crawl` | Recursive site crawl | Investor relations sections, filing indexes. |
+| `mcp__firecrawl__firecrawl_map` | URL discovery | "What pages exist on this site?" before crawling. |
 | `mcp__context7__*` | Library documentation | API/framework questions |
 | WebFetch | Fetch specific URLs | Known databases, filings, regulatory |
 | WebSearch | General web search | News, grey literature |
@@ -47,7 +59,54 @@ Not all tools exist in every project. Use what's available. The agent will error
 
 **Critical rule:** `fetch_paper` then `read_paper` BEFORE citing. Abstracts are not primary sources.
 
-**S2 gotcha:** No date filtering on free tier. ~100 req/5min rate limit. Use Exa for "recent papers on X."
+**S2 strengths (with API key):** 220M+ papers, structured metadata (citation counts, venues, DOIs), citation graph traversal, OpenAlex fallback. Best for: finding canonical papers, citation analysis, paper-to-paper discovery. Rate limit with key: 1 req/sec (vs 100/5min free). **S2 gotcha:** No date filtering. Use Exa for "recent papers on X." S2 API key set via `S2_API_KEY` env var in `~/.env`.
+
+### Search Routing
+
+- **Factual lookup:** Try `perplexity_ask` first (one call, cited). Fall back to Exa search + WebFetch.
+- **Semantic discovery:** Exa remains primary (neural search, find_similar, categories).
+- **News/events:** `brave_news_search` for last 24h-7d. Exa with date filter for older.
+- **Triangulation:** For high-stakes claims, use Exa + Brave (confirmed independent indexes). Perplexity is NOT confirmed independent — use only as tiebreaker.
+- **Rate-limited:** If Exa returns 429, fall back to `brave_web_search` or `perplexity_search`.
+
+### Tool-Class Routing (empirical — EBF3 benchmark, 2026-03-03)
+
+Benchmarked academic-only vs websearch-only vs combined on a real genomics VUS question (N=1, Sonnet, 15 turns each). Three empirical findings that change tool selection:
+
+**1. Websearch first for structured database lookups.**
+Use Exa/Brave/Perplexity to query UniProt, gnomAD, MaveDB, ClinVar, DECIPHER — these are web databases, not literature. Academic tools (S2/PubMed) return papers *about* these databases, not the data itself. In the benchmark, websearch found the exact UniProt domain boundary (Pro263 = IPT/TIG N-terminus) that academic missed entirely because it inferred from EBF1 homology instead of querying EBF3 directly.
+
+**2. Academic tools for citation-verified literature.**
+S2/PubMed produced zero hallucinated citations. Websearch hallucinated a PDB ID (3MUJ doesn't exist), two year errors, and a self-contradiction. Combined hallucinated a journal+page (real author, wrong journal). The failure pattern: websearch tools synthesize from training data + web snippets and confabulate citation details. **Never trust a PMID or PDB ID from websearch without verification via S2 or the actual database.**
+
+**3. Don't run combined without database context.**
+Combined's citation hallucination happened because it reasoned from training-data memory about a less-indexed paper. When database facts (domain boundaries, population frequencies, prior ClinVar entries) are already in context from earlier queries, the model doesn't need to invent. Feed websearch findings into your synthesis step.
+
+**Practical sequence for variant/gene research:**
+1. Websearch: UniProt domain boundaries, gnomAD constraint, MaveDB check, ClinVar entries
+2. Academic: PubMed/S2 for case series, functional data, phenotype literature
+3. Synthesize with both in context — the model has facts to anchor on, not just training memory
+
+**Limitations:** N=1 (genomics VUS query), single model (Sonnet). The routing may differ for other domains. Websearch may outperform academic on fast-moving fields (AI, markets) where S2 indexing lags.
+
+### Academic Tool Selection
+
+| Need | Best tool | Why not others |
+|------|-----------|---------------|
+| Canonical papers by topic | `search_papers` (S2) | Largest index (220M+), structured metadata, citation counts |
+| Recent papers (<6mo) | `web_search_advanced_exa` with `category: "research paper"` + date filter | S2 has no date filtering |
+| Citation analysis / related papers | `search_papers` (S2) → `save_paper` → `get_paper` | S2 exposes citation graph; arXiv/PubMed don't |
+| Preprints (arXiv) | `search_arxiv` (paper-search) | Direct arXiv API, download+read built in |
+| Clinical/medical literature | `search_pubmed` (paper-search) | MeSH terms, clinical focus |
+| Biology preprints | `search_biorxiv` (paper-search) | Direct bioRxiv API |
+| Full-text synthesis | `search_papers` → `save_paper` → `fetch_paper` → `ask_papers` | Gemini 1M context for multi-paper Q&A |
+| Grey literature / expert blogs | Exa semantic search | Academic APIs don't index blogs/substacks |
+
+### Verification
+
+- `mcp__research__verify_claim` (Exa /answer) remains primary for spot-checking.
+- For critical claims: also check via `brave_web_search` (independent index).
+</tool_reference>
 
 ## Effort Classification
 
@@ -101,7 +160,17 @@ If your axes all start from the same place, you have one axis with multiple quer
 - **Save papers** with `save_paper`, **fetch full text** before citing
 
 **Exa search philosophy (semantic search, not keyword):**
-- **Match recency filter to field velocity.** Before searching, judge how fast the field moves and filter accordingly. Stable fields (physics, law) need no date gate. Fast fields (AI, crypto, geopolitics) go stale in months — if results reference superseded models, outdated benchmarks, or pre-current-generation tools, discard and re-query with tighter dates. Use `web_search_advanced_exa` date ranges when available, or add year terms to queries.
+- **Use category filters on `web_search_advanced_exa`** when the domain is clear. Categories narrow results to high-signal sources:
+  - `financial report` — SEC filings, earnings, annual reports (investing/finance)
+  - `research paper` — academic papers (supplements S2, better recency filtering)
+  - `news` — press releases, regulatory announcements, current events
+  - `company` — company profiles, about pages
+- **Use `highlights`** to scan results before pulling full text. Set `highlightsQuery` to your claim/topic for relevance-ranked excerpts. Useful for evidence scanning across many results.
+- **Use `summary` with `summaryQuery`** for structured extraction from search results. Example: search "Company X recent earnings" with `enableSummary: true, summaryQuery: "revenue, EPS, guidance"`.
+- **Match recency filter to field velocity.** Before searching, judge how fast the field moves and filter accordingly. Stable fields (physics, law) need no date gate. Fast fields (AI, crypto, geopolitics) go stale in months — if results reference superseded models, outdated benchmarks, or pre-current-generation tools, discard and re-query with tighter dates. Use `web_search_advanced_exa` `startCrawlDate`/`startPublishedDate`:
+  - **Fast (AI, markets):** `startCrawlDate` = 30 days ago
+  - **Medium (biotech, policy):** `startCrawlDate` = 6 months ago
+  - **Stable (physics, law, math):** omit date filter
 - Exa matches by meaning, not keywords. Query by phrase — describe the *concept* you want results from, not the terms you'd grep for. "Gene-diet interaction abolishing cardiovascular genetic risk" finds different (better) results than "9p21 diet interaction."
 - **Seek insight from adjacent domains.** The most useful context often isn't phrased the same way or even from the same field. Ask: "What knowledge space would contain a brilliant critique of this idea?" Then phrase the query *from that domain's perspective*.
 - **Know when to use your own knowledge vs. search.** Your training data is a massive library with a hard expiration date. Use it deliberately:
@@ -140,6 +209,8 @@ For every specific claim in your output:
 - **Names:** From a source you accessed, or memory? If memory → verify or label `[UNVERIFIED]`
 - **Existence:** Does this paper actually exist? If you cannot confirm, DO NOT cite it
 - **Attribution:** Does the paper actually say what you think? Use `read_paper` to verify
+
+**For high-stakes factual claims** (specific numbers, valuations, statistics, entity properties), use `mcp__research__verify_claim` if available. It calls Exa /answer with structured output — one API call, returns verdict + citations. Use for spot-checking, not every claim (costs ~$0.005/call).
 
 **YOU WILL FABRICATE under pressure to be precise.** The pattern: real concept + invented specifics (author name, fold-change, sample size). Catch yourself. Vague truth > precise fiction.
 
@@ -191,6 +262,7 @@ During and after research:
 - **Session end:** `export_for_selve` → run `./selve update` to embed into unified index
 - **Research memos:** Write to project-appropriate location (`docs/research/`, `analysis/`)
 
+<output_contract>
 ## Output Contract
 
 ### Quick Tier
@@ -242,6 +314,7 @@ Tag every claim:
 Never present inference as sourced fact. Never present training data as retrieved evidence.
 
 **Precedence:** Admiralty grades (`[A1]`–`[F6]` per `source-grading` skill) are the standard for investigation/OSINT contexts — they grade both source reliability and information credibility. Provenance tags above (`[SOURCE]`, `[DATA]`, etc.) are the standard for general research — they track where a claim came from. When both apply (e.g., `/investigate` triggering `/researcher` for external validation), use Admiralty grades — they're strictly more granular. Don't duplicate by tagging the same claim with both systems.
+</output_contract>
 
 ## Parallel Agent Dispatch (Deep tier)
 
@@ -251,6 +324,7 @@ Never present inference as sourced fact. Never present training data as retrieve
 - Synthesis is a separate step (agents can't see each other's output)
 - 2 agents on 2 axes > 10 agents on 1 axis
 
+<anti_patterns>
 ## Anti-Patterns
 
 - **Synthesis mode default:** Summarized training data instead of fetching primary sources. THE failure mode this skill exists to prevent.
@@ -269,8 +343,12 @@ Never present inference as sourced fact. Never present training data as retrieve
 - **Scope creep without pushback:** User asks 15 things, attempt all, run out of context. Say "this session can handle N of these well; which are priority?"
 - **Training data as research:** Reciting textbook citations from training without `[TRAINING-DATA]` tags
 - **S2 for recency:** Using Semantic Scholar when Exa is better for recent work
+- **Websearch citations as primary:** Trusting PMIDs, PDB IDs, or journal/page citations from websearch tools without S2/database verification. Measured: websearch hallucinated PDB 3MUJ, two year errors, wrong journal attribution in one benchmark run.
+- **Academic tools for database lookups:** Using S2/PubMed to find UniProt annotations, gnomAD frequencies, or ClinVar entries — these return papers *about* databases, not the data. Use websearch to query the databases directly.
 - **Redundant documentation:** For tools the model already knows, adding instructions is noise
+</anti_patterns>
 
+<evidence_base>
 ## What Research Shows About Agent Reliability
 
 Evidence from 4 papers (Feb 2026), all read in full. Not aspirational — measured.
@@ -279,5 +357,6 @@ Evidence from 4 papers (Feb 2026), all read in full. Not aspirational — measur
 - **Consistency is flat.** Princeton (arXiv:2602.16666): 14 models, 18 months, r=0.02 with time. Same task + same model + different run = different outcome. Retry logic and majority-vote are architectural necessities.
 - **Documentation helps for novel knowledge, not for known APIs.** Agent-Diff (arXiv:2602.11224): +19 pts for genuinely novel APIs, +3.4 for APIs in pre-training. Domain-specific constraints (DuckDB types, ClinVar star ratings) are "novel" = worth encoding. Generic tool routing is "known" = low value.
 - **Simpler beats complex under stress.** ReliabilityBench (arXiv:2601.06112): ReAct > Reflexion under perturbations. More complex reasoning architectures compound failure.
+</evidence_base>
 
 $ARGUMENTS

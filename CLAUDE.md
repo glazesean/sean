@@ -67,6 +67,29 @@ Every time Sean starts a Claude Code session, the hook:
 
 If offline or merge fails, the session proceeds normally with local state.
 
+## Research Tools (MCP Setup)
+
+Five MCP servers are configured in `.mcp.json`. Sean needs these API keys exported in his shell (`.zshrc` or `.zprofile`):
+
+| Key | Service | How to get |
+|-----|---------|-----------|
+| `EXA_API_KEY` | Exa semantic search | https://exa.ai — paste directly into `.mcp.json` URL (replaces `YOUR_EXA_API_KEY_HERE`) |
+| `BRAVE_API_KEY` | Brave web/news search | https://brave.com/search/api/ |
+| `PERPLEXITY_API_KEY` | Perplexity AI answers | https://docs.perplexity.ai/ |
+
+No key needed: **paper-search** (arXiv, PubMed, bioRxiv — free), **Context7** (library docs — free).
+
+**Prerequisite:** `node`/`npm` and `uv` must be installed. Both are standard on the collaborator's setup; Sean may need to install them via `brew install node uv`.
+
+## Skills Available
+
+| Skill | Trigger | What it does |
+|-------|---------|-------------|
+| `/researcher` | Deep research questions | Multi-source research with epistemic rigor, anti-fabrication safeguards |
+| `/epistemics` | Bio/medical claims | Evidence hierarchy, source-grade-on-write, counterfactual generation |
+| `/source-grading` | Investigations, OSINT | NATO Admiralty grading (A-F reliability, 1-6 credibility) |
+| `/entity-management` | Track health entities | Versioned knowledge files for conditions, medications, doctors, genes |
+
 ## Git Workflow
 
 - Remote collaborator pushes to `main`. No branches.
