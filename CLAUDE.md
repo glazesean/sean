@@ -61,11 +61,14 @@ Gitignored. Never committed. Contents:
 ## Auto-Pull (SessionStart Hook)
 
 Every time Sean starts a Claude Code session, the hook:
-1. Fetches the latest from remote
-2. Merges with `-X theirs` — remote version wins on conflict (code, scripts, docs, derived)
-3. **Exception: `journal/`** — Sean's local version always wins. His authored input is never overwritten by a pull.
+1. **Pulls this repo** — merges with remote-wins strategy (code, scripts, docs, derived). **Exception: `journal/`** — Sean's local version always wins.
+2. **Pulls `~/Projects/skills/`** — clones on first run from `markusstrasser/skills.git`. Copies relevant skills (epistemics, researcher, source-grading, entity-management, causal-check) into `.claude/skills/`.
+3. **Pulls `~/Projects/claude-config/`** — clones on first run from `markusstrasser/claude-config.git`. Syncs global `~/.claude/CLAUDE.md` (universal agent rules, best practices).
+4. **Injects Exa API key** — checks macOS keychain (`exa-api-key` or `EXA_API_KEY` service name) or `$EXA_API_KEY` env var. Replaces placeholder in `.mcp.json`.
 
-If offline or merge fails, the session proceeds normally with local state.
+If offline or anything fails, the session proceeds normally with local state.
+
+**First-time setup:** Sean needs SSH access to the `markusstrasser` GitHub repos (read-only deploy key or collaborator access). The hook auto-clones on first session.
 
 ## Research Tools (MCP Setup)
 
