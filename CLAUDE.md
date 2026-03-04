@@ -6,10 +6,12 @@ Two people maintain this repo. Sean (the user) and a remote collaborator who pus
 
 | Folder | Tracked | Who writes | Purpose |
 |--------|---------|------------|---------|
-| `data/` | **gitignored** | Machine / Sean's agent | API downloads, lab results, emails, PDFs, raw health records. Ephemeral or private. |
-| `journal/` | **git-tracked** | Sean | His authored input: questionnaire answers, self-reports, transcripts, phenotype notes, symptom logs, interview summaries. Keep flat. |
-| `journal/private/` | **gitignored, own local repo** | Sean | Personal entries Sean doesn't share. Has its own `.git` for backup/history. Never leaves his machine. |
-| `derived/` | **git-tracked** | Scripts / Claude | Interpretations, analyses, summaries built from data + journal. Can be rederived — safe to regenerate. |
+| `self-reports/` | **git-tracked** | Sean | His raw voice — transcripts, observations, corrections, questionnaire answers. |
+| `self-reports/private/` | **gitignored, own local repo** | Sean | Personal entries Sean doesn't share. Has its own `.git` for backup/history. |
+| `docs/questionnaires/` | **git-tracked** | Remote collaborator | Structured prompts to guide Sean's input (blank templates). |
+| `docs/entities/self/` | **git-tracked** | Agent | Processed/curated versions of Sean's responses. |
+| `data/` | **gitignored** | Machine / Sean's agent | API downloads, lab results, emails, PDFs, raw health records. |
+| `derived/` | **git-tracked** | Scripts / Claude | Interpretations, analyses, summaries. Can be rederived. |
 | `scripts/` | **git-tracked** | Remote collaborator | Pipeline code, analysis scripts. |
 | `docs/` | **git-tracked** | Remote collaborator | Templates, questionnaires (blank), example memos. |
 | `.claude/` | **git-tracked** | Remote collaborator | Skills, rules, runbooks, hooks. |
@@ -17,32 +19,33 @@ Two people maintain this repo. Sean (the user) and a remote collaborator who pus
 ## Data Flow
 
 ```
-APIs / downloads → data/     (private, gitignored)
-Sean speaks      → journal/  (tracked, Sean-owned, never overwritten)
-Agent analyzes   → derived/  (tracked, rederivable, shared)
+APIs / downloads → data/          (private, gitignored)
+Sean speaks      → self-reports/  (tracked, Sean-owned, never overwritten)
+Agent curates    → docs/entities/ (tracked, derived from self-reports)
+Agent analyzes   → derived/       (tracked, rederivable, shared)
 ```
 
-## journal/ Rules
+## self-reports/ Rules
 
 This is Sean's voice. Treat it as source-of-truth authored input.
 
 - **Append-only.** Create new files, append to existing ones. Never delete content, never overwrite, never truncate. Even if something looks outdated or contradictory — it's his record.
-- **Never regenerate** journal content. If a questionnaire answer seems wrong, ask Sean — don't "fix" it.
-- **Never delete** journal files. Not even to "clean up." Git history is not a backup plan — the files stay.
+- **Never regenerate** self-report content. If an answer seems wrong, ask Sean — don't "fix" it.
+- **Never delete** self-report files. Not even to "clean up." Git history is not a backup plan — the files stay.
 - **Protected from remote.** The auto-pull hook ensures Sean's local version wins on merge conflicts.
 - Keep the folder shallow. A file per questionnaire, a file per session/topic. No deep nesting.
 
 ## Auto-Capture
 
-When Sean mentions personal health information during conversation — symptoms, conditions, medications, family history, phenotype observations, lifestyle patterns, anything about his body or mind — **save it to `journal/`** before the session ends. Don't wait to be asked.
+When Sean mentions personal health information during conversation — symptoms, conditions, medications, family history, phenotype observations, lifestyle patterns, anything about his body or mind — **save it to `self-reports/`** before the session ends. Don't wait to be asked.
 
 Conversation context disappears after the session. His health information belongs in files, not buried in a chat transcript.
 
-- If a relevant journal file exists (e.g., `symptoms.md`, `medications.md`), append to it with a date.
+- If a relevant file exists (e.g., `symptoms.md`, `medications.md`), append to it with a date.
 - If no file fits, create one with a clear name.
-- **If the information is sensitive**, ask Sean: "journal/ or journal/private?" Default to `journal/` (shared) unless he says otherwise or the topic is clearly private.
+- **If the information is sensitive**, ask Sean: "self-reports/ or self-reports/private/?" Default to `self-reports/` (shared) unless he says otherwise or the topic is clearly private.
 - Quote Sean's words when possible. Don't paraphrase health self-reports into clinical language — preserve how he said it.
-- After writing to `journal/private/`, commit it there: `cd journal/private && git add -A && git commit -m "..."`. This is a separate local repo — it needs its own commits.
+- After writing to `self-reports/private/`, commit it there: `cd self-reports/private && git add -A && git commit -m "..."`. This is a separate local repo — it needs its own commits.
 
 ## derived/ Rules
 
@@ -61,7 +64,7 @@ Gitignored. Never committed. Contents:
 ## Auto-Pull (SessionStart Hook)
 
 Every time Sean starts a Claude Code session, the hook:
-1. **Pulls this repo** — merges with remote-wins strategy (code, scripts, docs, derived). **Exception: `journal/`** — Sean's local version always wins.
+1. **Pulls this repo** — merges with remote-wins strategy (code, scripts, docs, derived). **Exception: `self-reports/`** — Sean's local version always wins.
 2. **Pulls `~/Projects/skills/`** — clones on first run from `markusstrasser/skills.git`. Copies relevant skills (epistemics, researcher, source-grading, entity-management, causal-check) into `.claude/skills/`.
 3. **Pulls `~/Projects/claude-config/`** — clones on first run from `markusstrasser/claude-config.git`. Syncs global `~/.claude/CLAUDE.md` (universal agent rules, best practices).
 4. **Pulls `~/Projects/papers-mcp/`** — clones on first run from `markusstrasser/papers-mcp.git`. Runs `uv sync` on first clone. Provides `mcp__research__*` tools.
@@ -102,4 +105,4 @@ The **research** MCP (`papers-mcp`) provides `mcp__research__*` tools — paper 
 - Remote collaborator pushes to `main`. No branches.
 - Sean's agent auto-pulls on session start.
 - Sean commits journal entries and can commit derived output.
-- Merge conflicts: remote wins everywhere except `journal/`.
+- Merge conflicts: remote wins everywhere except `self-reports/`.

@@ -44,11 +44,11 @@ if [ "$LOCAL" != "$REMOTE" ]; then
         git merge --abort 2>/dev/null
         echo "Auto-pull: sean merge failed, proceeding with local state" >&2
     else
-        # Restore journal/ if overwritten (Sean's version always wins)
-        CHANGED_JOURNAL=$(git diff HEAD~1 --name-only -- journal/ 2>/dev/null)
-        if [ -n "$CHANGED_JOURNAL" ]; then
-            git checkout "$LOCAL" -- journal/ 2>/dev/null
-            git commit -m "auto-pull: restore journal/ to local version" --no-edit 2>/dev/null
+        # Restore self-reports/ if overwritten (Sean's version always wins)
+        CHANGED_REPORTS=$(git diff HEAD~1 --name-only -- self-reports/ 2>/dev/null)
+        if [ -n "$CHANGED_REPORTS" ]; then
+            git checkout "$LOCAL" -- self-reports/ 2>/dev/null
+            git commit -m "auto-pull: restore self-reports/ to local version" --no-edit 2>/dev/null
         fi
         echo "Auto-pull: sean repo updated" >&2
     fi

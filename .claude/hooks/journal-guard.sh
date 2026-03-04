@@ -1,12 +1,12 @@
 #!/bin/bash
-# PreToolUse: Block edits that delete content from journal/ files.
+# PreToolUse: Block edits that delete content from self-reports/ files.
 # Allows: Write (new files), Edit (appending only).
 # Blocks: Edit that removes lines, Write that overwrites existing journal file with less content.
 
 TOOL_NAME="$TOOL_NAME"
 INPUT=$(cat)
 
-# Only care about Write and Edit on journal/ paths
+# Only care about Write and Edit on self-reports/ paths
 FILE_PATH=$(echo "$INPUT" | python3 -c "
 import sys, json
 try:
@@ -18,7 +18,7 @@ except:
 
 # Not a journal file — allow
 case "$FILE_PATH" in
-    */journal/*) ;;
+    */self-reports/*) ;;
     *) exit 0 ;;
 esac
 
@@ -40,7 +40,7 @@ except:
 " 2>/dev/null)
 
     if [ "$NEW_LINES" -lt "$EXISTING_LINES" ]; then
-        echo '{"decision":"block","reason":"journal/ is append-only. Cannot overwrite with shorter content. Use Edit to append instead."}' >&2
+        echo '{"decision":"block","reason":"self-reports/ is append-only. Cannot overwrite with shorter content. Use Edit to append instead."}' >&2
         exit 2
     fi
 fi
@@ -61,7 +61,7 @@ else:
 " 2>/dev/null)
 
     if [ "$RESULT" = "block" ]; then
-        echo '{"decision":"block","reason":"journal/ is append-only. Edits must not remove content. Append new information instead."}' >&2
+        echo '{"decision":"block","reason":"self-reports/ is append-only. Edits must not remove content. Append new information instead."}' >&2
         exit 2
     fi
 fi
