@@ -64,7 +64,8 @@ Every time Sean starts a Claude Code session, the hook:
 1. **Pulls this repo** — merges with remote-wins strategy (code, scripts, docs, derived). **Exception: `journal/`** — Sean's local version always wins.
 2. **Pulls `~/Projects/skills/`** — clones on first run from `markusstrasser/skills.git`. Copies relevant skills (epistemics, researcher, source-grading, entity-management, causal-check) into `.claude/skills/`.
 3. **Pulls `~/Projects/claude-config/`** — clones on first run from `markusstrasser/claude-config.git`. Syncs global `~/.claude/CLAUDE.md` (universal agent rules, best practices).
-4. **Injects Exa API key** — checks macOS keychain (`exa-api-key` or `EXA_API_KEY` service name) or `$EXA_API_KEY` env var. Replaces placeholder in `.mcp.json`.
+4. **Pulls `~/Projects/papers-mcp/`** — clones on first run from `markusstrasser/papers-mcp.git`. Runs `uv sync` on first clone. Provides `mcp__research__*` tools.
+5. **Injects paths and keys** — replaces placeholders in `.mcp.json`: Exa API key from macOS keychain, papers-mcp directory path.
 
 If offline or anything fails, the session proceeds normally with local state.
 
@@ -72,15 +73,18 @@ If offline or anything fails, the session proceeds normally with local state.
 
 ## Research Tools (MCP Setup)
 
-Five MCP servers are configured in `.mcp.json`. Sean needs these API keys exported in his shell (`.zshrc` or `.zprofile`):
+Six MCP servers are configured in `.mcp.json`. Sean needs these API keys exported in his shell (`.zshrc` or `.zprofile`):
 
 | Key | Service | How to get |
 |-----|---------|-----------|
-| `EXA_API_KEY` | Exa semantic search | https://exa.ai — paste directly into `.mcp.json` URL (replaces `YOUR_EXA_API_KEY_HERE`) |
+| `EXA_API_KEY` | Exa semantic search | https://exa.ai — stored in macOS keychain, auto-injected by session hook |
 | `BRAVE_API_KEY` | Brave web/news search | https://brave.com/search/api/ |
 | `PERPLEXITY_API_KEY` | Perplexity AI answers | https://docs.perplexity.ai/ |
+| `S2_API_KEY` | Semantic Scholar (research MCP) | https://api.semanticscholar.org/ — optional but recommended for rate limits |
 
 No key needed: **paper-search** (arXiv, PubMed, bioRxiv — free), **Context7** (library docs — free).
+
+The **research** MCP (`papers-mcp`) provides `mcp__research__*` tools — paper search, full-text extraction, corpus management, claim verification. Auto-cloned from GitHub by the session hook.
 
 **Prerequisite:** `node`/`npm` and `uv` must be installed. Both are standard on the collaborator's setup; Sean may need to install them via `brew install node uv`.
 

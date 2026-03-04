@@ -5,9 +5,11 @@
 SEAN_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 SKILLS_ROOT="$HOME/Projects/skills"
 CONFIG_ROOT="$HOME/Projects/claude-config"
+PAPERS_MCP_ROOT="$HOME/Projects/papers-mcp"
 
 SKILLS_REMOTE="https://github.com/markusstrasser/skills.git"
 CONFIG_REMOTE="https://github.com/markusstrasser/claude-config.git"
+PAPERS_MCP_REMOTE="https://github.com/markusstrasser/papers-mcp.git"
 
 # Skills to sync into sean's .claude/skills/
 SYNC_SKILLS="epistemics researcher source-grading entity-management causal-check"
@@ -76,8 +78,27 @@ if [ -f "$CONFIG_ROOT/CLAUDE.md" ]; then
     echo "Auto-pull: global CLAUDE.md synced" >&2
 fi
 
-# ─── 4. Inject Exa API key from macOS keychain if placeholder ────────
+# ─── 4. Pull papers-mcp (research MCP server) ────────────────────────
+clone_or_pull "$PAPERS_MCP_ROOT" "$PAPERS_MCP_REMOTE" "papers-mcp"
+
+if [ -d "$PAPERS_MCP_ROOT" ]; then
+    # Install dependencies on first clone
+    if [ ! -d "$PAPERS_MCP_ROOT/.venv" ]; then
+        (cd "$PAPERS_MCP_ROOT" && uv sync 2>/dev/null)
+        echo "Auto-pull: papers-mcp dependencies installed" >&2
+    fi
+fi
+
+# ─── 5. Inject paths and keys into .mcp.json ────────────────────────
 MCP_FILE="$SEAN_ROOT/.mcp.json"
+
+# Inject papers-mcp directory path
+if [ -f "$MCP_FILE" ] && grep -q "PAPERS_MCP_DIR_HERE" "$MCP_FILE" 2>/dev/null; then
+    sed -i '' "s|PAPERS_MCP_DIR_HERE|$PAPERS_MCP_ROOT|" "$MCP_FILE" 2>/dev/null
+    echo "Auto-pull: papers-mcp path injected" >&2
+fi
+
+# Inject Exa API key from macOS keychain
 if [ -f "$MCP_FILE" ] && grep -q "YOUR_EXA_API_KEY_HERE" "$MCP_FILE" 2>/dev/null; then
     EXA_KEY=$(security find-generic-password -s "exa-api-key" -w 2>/dev/null || \
               security find-generic-password -s "EXA_API_KEY" -w 2>/dev/null || \
