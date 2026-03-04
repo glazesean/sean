@@ -49,9 +49,9 @@ Conversation context disappears after the session. His health information belong
 
 ## derived/ Rules
 
-- Everything here can be regenerated from `data/` + `journal/` + `scripts/`.
+- Everything here can be regenerated from `data/` + `self-reports/` + `scripts/`.
 - Safe for the agent to overwrite, update, or restructure.
-- When writing derived files, note what inputs produced them (which journal entries, which data files).
+- When writing derived files, note what inputs produced them (which self-reports, which data files).
 
 ## data/ Convention
 
@@ -99,6 +99,7 @@ The **research** MCP (`papers-mcp`) provides `mcp__research__*` tools — paper 
 | `/epistemics` | Bio/medical claims | Evidence hierarchy, source-grade-on-write, counterfactual generation |
 | `/source-grading` | Investigations, OSINT | NATO Admiralty grading (A-F reliability, 1-6 credibility) |
 | `/entity-management` | Track health entities | Versioned knowledge files for conditions, medications, doctors, genes |
+| `/causal-check` | "Why" questions | Causal inference discipline — shape-match explanations, define the null, predict footprints |
 
 ## Git Workflow
 

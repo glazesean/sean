@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/journal-guard.sh"
+            "command": "bash .claude/hooks/self-reports-guard.sh"
           }
         ]
       }

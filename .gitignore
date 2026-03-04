@@ -1,4 +1,5 @@
 .DS_Store
 data/
+self-reports/private/
 journal/private/
 .claude/plans/

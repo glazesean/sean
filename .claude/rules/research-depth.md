@@ -1,12 +1,12 @@
 ---
 paths:
   - "docs/**"
-  - "interpreted/**"
+  - "derived/**"
 ---
 
 # Research Depth Protocol
 
-These rules load when writing to docs/ or interpreted/ files.
+These rules load when writing to docs/ or derived/ files.
 
 ## Depth Decision Tree
 
