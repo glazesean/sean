@@ -6,8 +6,8 @@ SEAN_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 SKILLS_ROOT="$HOME/Projects/skills"
 CONFIG_ROOT="$HOME/Projects/claude-config"
 
-SKILLS_REMOTE="git@github.com:markusstrasser/skills.git"
-CONFIG_REMOTE="git@github.com:markusstrasser/claude-config.git"
+SKILLS_REMOTE="https://github.com/markusstrasser/skills.git"
+CONFIG_REMOTE="https://github.com/markusstrasser/claude-config.git"
 
 # Skills to sync into sean's .claude/skills/
 SYNC_SKILLS="epistemics researcher source-grading entity-management causal-check"

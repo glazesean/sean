@@ -68,7 +68,7 @@ Every time Sean starts a Claude Code session, the hook:
 
 If offline or anything fails, the session proceeds normally with local state.
 
-**First-time setup:** Sean needs SSH access to the `markusstrasser` GitHub repos (read-only deploy key or collaborator access). The hook auto-clones on first session.
+**First-time setup:** No credentials needed — skills and claude-config repos are public. The hook auto-clones via HTTPS on first session.
 
 ## Research Tools (MCP Setup)
 
