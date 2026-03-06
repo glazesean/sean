@@ -105,5 +105,5 @@ The **research** MCP (`papers-mcp`) provides `mcp__research__*` tools — paper 
 
 - Remote collaborator pushes to `main`. No branches.
 - Sean's agent auto-pulls on session start.
-- Sean commits journal entries and can commit derived output.
+- Sean commits self-reports and can commit derived output.
 - Merge conflicts: remote wins everywhere except `self-reports/`.

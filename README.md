@@ -1,129 +1,108 @@
-# Health Research Toolkit for Claude Code
+# Sean Health Knowledge System
 
-A portable kit for rigorous AI-assisted health research. Contains skills, rules, runbooks, templates, questionnaires, and example research memos — all designed to make Claude Code produce **evidence-graded, citation-verified, anti-hallucination** health research.
+This repo is Sean's working system for capturing personal health information, storing private raw inputs locally, and generating structured research and analysis with Claude Code.
 
-> These files were developed over months of health research with Claude Code, refined through post-mortems of agent failures (fabricated citations, confirmation bias, single-axis search blindness). They encode hard-won lessons, not aspirational rules.
+It is not just a document folder and not just a codebase. It mixes:
 
----
+- Sean-authored source material
+- private machine-local data
+- derived analyses that can be regenerated
+- shared agent tooling, templates, and research workflows
+
+## How Sean Uses This Repo
+
+Typical use looks like this:
+
+1. Sean records observations, symptoms, questionnaire answers, corrections, and context in `self-reports/`.
+2. Raw exports and sensitive documents go into `data/` on Sean's machine.
+3. Claude Code or scripts transform those inputs into curated summaries, entity notes, and analyses.
+4. Regenerable outputs are written to `derived/` or `docs/entities/`.
+5. The collaborator updates the shared research infrastructure in `.claude/`, `docs/`, and `scripts/`.
+
+The key idea is that Sean's own words stay preserved, while analysis stays separate and overwriteable.
+
+## File Structure
+
+### Source of Truth
+
+- `self-reports/`
+  Sean's raw voice. Use this for transcripts, symptom descriptions, questionnaire answers, corrections, and personal observations.
+- `self-reports/private/`
+  Local-only version of the same idea for entries Sean does not want shared. This path is gitignored by the main repo and can keep its own local history.
+- `data/`
+  Raw private inputs such as lab exports, PDFs, downloaded records, email exports, and API pulls. This is machine-local working data, not polished output.
+
+### Derived and Curated
+
+- `derived/`
+  Regenerable analysis outputs. Safe to update, rewrite, or restructure as scripts and methods improve.
+- `docs/entities/`
+  Curated structured notes derived from Sean's raw inputs. This is where the agent can organize knowledge after reading `self-reports/`.
+
+### Shared Research Infrastructure
+
+- `docs/`
+  Questionnaires, examples, templates, and research scaffolding.
+- `scripts/`
+  Analysis and pipeline code.
+- `.claude/`
+  Skills, rules, hooks, and runbooks that shape how Claude Code works in this repo.
+
+## Practical Rules
+
+- Put Sean-authored health information in `self-reports/`, not in ad hoc notes elsewhere.
+- Treat `self-reports/` as append-only source material. Do not rewrite Sean's account into something cleaner and pretend it is the original.
+- Put highly sensitive or local-only material in `self-reports/private/` or `data/`, depending on whether it is narrative input or raw records.
+- Put downloads and raw records in `data/`, not in `docs/`.
+- Put analyses in `derived/` if they can be regenerated.
+- Put reusable instructions, templates, and examples in `docs/`.
+
+## Mental Model
+
+Use this distinction consistently:
+
+- `self-reports/` = what Sean said
+- `data/` = what systems exported
+- `derived/` = what the agent concluded
+- `docs/` = reusable scaffolding
+
+That separation matters. It keeps original human input distinct from machine-collected records and distinct from agent interpretation.
+
+## Collaboration Model
+
+Two people maintain the repo:
+
+- Sean uses it locally, adds self-reports, stores local private data, and runs Claude Code.
+- A remote collaborator maintains shared scripts, templates, and agent infrastructure.
+
+In practice:
+
+- Sean-owned source material lives in `self-reports/`.
+- Private local machine data lives in `data/`.
+- Shared methodology lives in `.claude/`, `docs/`, and `scripts/`.
 
 ## Quick Start
 
-1. Copy `.claude/` into your project's `.claude/` directory
-2. Copy `templates/` wherever you keep docs
-3. Fill out the questionnaires in `questionnaires/` (audio transcription → cleanup works great)
-4. Read the examples in `examples/` to see what the output looks like
-5. Configure MCP servers (see below)
+If Sean is using the repo directly:
 
-## What's In Here
+1. Add new personal observations to `self-reports/`.
+2. Place raw records and exports in `data/`.
+3. Ask Claude Code to analyze, summarize, or curate those inputs.
+4. Expect outputs in `derived/` or `docs/entities/`.
 
-### `.claude/skills/` — AI Agent Skills (drop into `.claude/skills/`)
+If the collaborator is updating the system:
 
-| Skill | What it does |
-|-------|-------------|
-| **`researcher/SKILL.md`** | Full autonomous research agent — phased structure (ground truth → divergence → disconfirmation → verification → synthesis), effort tiers (quick/standard/deep), anti-fabrication safeguards |
-| **`researcher/DOMAINS.md`** | Domain-specific gotchas — biomedical, trading, math, OSINT, social science, economics |
-| **`epistemics/SKILL.md`** | Bio/medical evidence hierarchy (9 grades), anti-hallucination rules, inference separation, PGx guardrails, model-specific failure modes |
-| **`source-grading/SKILL.md`** | NATO Admiralty grading system — 2-axis scoring (source reliability A-F × information credibility 1-6) |
+1. Add or refine workflows in `.claude/`.
+2. Update templates and questionnaires in `docs/`.
+3. Add or improve automation in `scripts/`.
 
-### `.claude/rules/` — Auto-Loaded Rules (trigger on file paths)
+## Guiding Principle
 
-| Rule | Triggers on | What it does |
-|------|------------|-------------|
-| **`epistemics.md`** | Writing to `docs/research/**` | Evidence hierarchy, counterfactual generation, self-grading, mathematical claims standards |
-| **`research-depth.md`** | Writing to `docs/**` | Depth decision tree (HIGH/MEDIUM/LOW stakes), primary source obligations, provenance tagging system |
+This repo should make it obvious:
 
-### `.claude/runbooks/` — Research Procedures
+- where Sean speaks for himself
+- where raw evidence lives
+- where the agent is allowed to transform material
+- what can be safely regenerated
 
-| Runbook | What it does |
-|---------|-------------|
-| **`research.md`** | End-to-end research procedure: ground truth audit → exploratory divergence → hypothesis → disconfirmation → verification → synthesis. Includes memo contract, QA commands, evidence hierarchy |
-
-### `templates/` — Reusable Scaffolding
-
-| Template | What it does |
-|----------|-------------|
-| **`RESEARCH_PROMPT.md`** | 386-line research agent prompt. Phased workflow, 12 documented anti-patterns, orchestrator dispatch rules for parallel agents. Paste into agent context for rigorous research |
-| **`_MEMO_TEMPLATE.md`** | Research memo template — decision claims table, ground truth, findings, disconfirmation log, verification log, search log |
-| **`MEMO_CONTRACT.md`** | What sections a claim-heavy memo must have, plus QA commands |
-
-### `questionnaires/` — Health Phenotyping (fill these out)
-
-| File | Time | What it covers |
-|------|------|---------------|
-| `01_family_and_medical_history.md` | 15-20 min | Family history, medical timeline, medications |
-| `02_current_symptoms.md` | 15-20 min | System-by-system symptom inventory |
-| `03_psychiatric_and_cognitive.md` | 10-15 min | Psychiatric phenotype, cognitive function |
-| `04_lifestyle_and_environment.md` | 10 min | Diet, exercise, sleep, substances, work |
-| `05_genotype_phenotype_validation.md` | 10 min | Do genetic predictions match reality? **Customize with YOUR variants** |
-| `06_standardized_tests.md` | 30-45 min | Validated clinical scales (PHQ-9, GAD-7, ISI, COMPASS-31, etc.) with links |
-
-### `examples/` — What Good Output Looks Like
-
-These are anonymized real research memos showing the methodology in action:
-
-| Example | What it demonstrates |
-|---------|---------------------|
-| `pots_natural_history_prognosis.md` | Study-by-study evidence analysis, contradiction resolution, evidence quality grading, honest "what I couldn't find" |
-| `pots_interventions_evidence_review.md` | 15-claim evidence ranking, treatment hierarchy by evidence strength, disconfirmation of 5 claims, self-audit checklist |
-| `supplement_doublecheck_2026_02.md` | Product evaluation with COI analysis, sub-clinical dose detection, "better alternative" suggestions |
-| `longevity_supplement_literature_review_2025_2026.md` | 9-compound literature review with bottom lines, summary evidence table, "what changes understanding" section |
-| `ldn_pots_postcovid.md` | Drug evaluation — direct evidence, adjacent condition evidence, mechanism, practical details, probability framing |
-| `phenotyping_protocol.md` | At-home phenotyping — tiered tests by effort/yield, equipment recommendations with prices, longitudinal tracking protocol |
-| `biological_age_methodology.md` | PhenoAge calculation methodology — formula gotchas, unit conversions, validation approach |
-
----
-
-## MCP Servers You'll Want
-
-The research skills reference these MCP tools. Configure whichever you have access to:
-
-| Server | What it does | Priority |
-|--------|-------------|----------|
-| **Semantic Scholar (`research`)** | Paper discovery, PDF download, full-text extraction, Gemini CAG querying | HIGH |
-| **Exa** | Semantic web search — finds non-obvious connections, expert blogs, recent work | HIGH |
-| **paper-search** | arxiv, PubMed, bioRxiv, medRxiv search | MEDIUM |
-| **context7** | Library/API documentation lookup | LOW (for software, not health) |
-
-Without MCP servers, the skills still work — they'll use WebSearch and WebFetch as fallbacks. But the research quality is significantly better with Semantic Scholar + Exa.
-
----
-
-## Key Concepts
-
-### Evidence Hierarchy (Bio/Medical)
-1. Clinical guideline / consensus (NICE, WHO, CPIC)
-2. Systematic review / meta-analysis
-3. Well-powered RCT
-4. Small / pilot RCT
-5. Large observational / cohort
-6. GWAS / genetic association
-7. Animal model
-8. In vitro / cell culture
-9. Case report / expert opinion
-
-**Never let 7-9 substitute for 1-6.** Say explicitly: "Mechanistic evidence only; no human clinical trial confirms this."
-
-### Provenance Tags
-Every claim gets tagged:
-- `[SOURCE: url]` — Retrieved and read
-- `[DATABASE: name]` — Queried reference database
-- `[INFERENCE]` — Derived from evidence + assumptions
-- `[TRAINING-DATA]` — From model training, not verified
-- `[PREPRINT]` — Unreplicated preprint
-- `[UNVERIFIED]` — Plausible but no source
-
-### The Core Anti-Pattern
-> LLMs will synthesize from training data and present it as research. The entire toolkit exists to prevent this. The research prompt makes verification structurally mandatory, not aspirational. Agents WILL skip optional verification. They WILL fabricate when pressured to be precise. The architecture must anticipate this.
-
----
-
-## Customization
-
-1. **Questionnaire 05** needs YOUR genomic variants — the template shows the pattern
-2. **Rules frontmatter** (`paths:` in epistemics.md, research-depth.md) — adjust to match your project's directory structure
-3. **Research runbook** references project-specific QA scripts — replace with your own or remove
-4. **MCP tool routing** in researcher SKILL.md — covers many tools, will gracefully skip unavailable ones
-
----
-
-*Built from real research sessions. Refined through failure.*
+If a folder name stops communicating that clearly, it should be renamed.
